@@ -4,6 +4,7 @@ from extensions import db, migrate, jwt, bcrypt
 from extensions import jwt, jwt_blocklist
 
 
+
 def create_app():     # factory function jo flask app create krte h
     app = Flask(__name__)    
     app.config.from_object(Config)

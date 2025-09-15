@@ -4,3 +4,5 @@ venv/
 instance/
 .env
 temp/
+client_secrets.json
+credentials.json
