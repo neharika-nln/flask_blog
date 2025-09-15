@@ -29,8 +29,9 @@ def create_app():     # factory function jo flask app create krte h
 
     return app
 
+app = create_app()
+
 if __name__ == "__main__":
-    app = create_app()
 
     # # Make sure this is **after app is created**
     # with app.app_context():
