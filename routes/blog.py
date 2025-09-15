@@ -3,29 +3,53 @@ from extensions import db
 from models import Post, Comment, Like
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
+import os
+from werkzeug.utils import secure_filename
+from utils.gdrive_upload import FOLDER_ID, upload_to_drive  
 
 blog_bp = Blueprint('blog_bp', __name__)
+
 
 # Create a new post
 @blog_bp.route("/create", methods=["POST"])
 @jwt_required()
 def create_post():
-    data = request.get_json()
+    # Get form data
+    title = request.form.get("title")
+    content = request.form.get("content")
     user_id = get_jwt_identity()  # get current logged-in user
+    
 
-    if not data.get("title") or not data.get("content"):
+    if not title or not content:
         return jsonify({"error": "Title and content are required"}), 400
 
+    image_url = None
+    if "image" in request.files:
+        file = request.files["image"]
+        filename = secure_filename(file.filename)
+        os.makedirs("temp", exist_ok=True)
+        temp_path = os.path.join("temp", filename)
+        print(temp_path)
+        file.save(temp_path)
+
+        # upload to Google Drive
+        image_url = upload_to_drive(temp_path, filename,FOLDER_ID)
+
+        # remove temp file after upload
+        os.remove(temp_path)
+
+
     new_post = Post(
-        title=data["title"],
-        content=data["content"],
-        user_id=user_id
+        title=title,
+        content=content,
+        user_id=user_id,
+        image=image_url
     )
 
     db.session.add(new_post)
     db.session.commit()
 
-    return jsonify({"message": "Post created successfully", "post_id": new_post.id}), 200
+    return jsonify({"message": "Post created successfully", "post_id": new_post.id, "image":image_url}), 200
 
 # Get all posts with likes/comments count
 @blog_bp.route("/all", methods=["GET"])
@@ -37,7 +61,15 @@ def get_posts():
             "id": post.id,
             "title": post.title,
             "content": post.content,
+            "image": post.image,
             "likes_count": len(post.likes),
+            "likes": [
+                {
+                    "id":l.id,
+                    "author_id":l.user_id
+                }
+                for l in post.likes
+            ],
             "comments_count": len(post.comments),
             "comments": [
             {
@@ -86,13 +118,15 @@ def like_post(post_id):
     # Prevent duplicate likes
     existing_like = Like.query.filter_by(user_id=user_id, post_id=post.id).first()
     if existing_like:
-        return jsonify({"message": "You already liked this post"}), 400
-
-    like = Like(user_id=user_id, post_id=post.id)
-    db.session.add(like)
-    db.session.commit()
-
-    return jsonify({"message": "Post liked"}), 201
+        db.session.delete(existing_like)
+        db.session.commit()
+        return jsonify({"message": "Post unliked"}), 200
+    
+    else:
+        like = Like(user_id=user_id,post_id=post.id)
+        db.session.add(like)
+        db.session.commit()
+        return jsonify({"message":"Post Liked"}),201
 
 # DELETE a post
 @blog_bp.route("/delete/<int:post_id>", methods=["DELETE"])
@@ -106,6 +140,14 @@ def delete_post(post_id):
 
     if post.user_id != int(current_user_id):
         return jsonify({"error": "Unauthorized - You can only delete your own posts"}), 403
+
+    # delete comments
+    for comment in post.comments:
+        db.session.delete(comment)
+
+    # delete likes
+    for like in post.likes:
+        db.session.delete(like)
 
     db.session.delete(post)
     db.session.commit()

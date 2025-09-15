@@ -15,10 +15,10 @@ def create_app():     # factory function jo flask app create krte h
     bcrypt.init_app(app)   # connecting bcrypt with the app
 
 
-    @jwt.token_in_blocklist_loader    # ye check krta h ki token logout hone ke baad invalid h ya nhi
+    @jwt.token_in_blocklist_loader    # ye ek jwt ka in-built callback function h jo automatically call hota h jb bhi ek user login krta h aur check krta h ki token logout hone ke baad valid h ya nhi
     def check_if_token_revoked(jwt_header, jwt_payload: dict):
         jti = jwt_payload["jti"]  # unique identifier for the token
-        return jti in jwt_blocklist
+        return jti in jwt_blocklist   # if the token id is in the blocklist means the token is invalid so the response would be true or false
 
     # Import blueprints
     from routes.auth import auth_bp    # ye humne isliye use kia h taki hume saara code ek hi file me na rkhna pde

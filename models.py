@@ -10,8 +10,6 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # posts = db.relationship("Post", backref="author", lazy=True)
-    
-    
     posts = db.relationship('Post', back_populates='user', lazy=True)  #this is not a column but a 1-to-many relationship bw User model and Post model
                   
 class Post(db.Model):
@@ -21,11 +19,11 @@ class Post(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)   #this is a foreign key   
-    # int the above line - "user.id" refers to : 'user'-User model and id is the id of the User model
+    # in the above line - "user.id" refers to : 'user'-User model and id is the id in the User model
 
-    
     user = db.relationship('User', back_populates='posts')
 
+    image = db.Column(db.String(500)) 
     
     # relationships for comments and likes
     comments = db.relationship('Comment', backref='post', lazy=True)
