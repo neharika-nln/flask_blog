@@ -6,3 +6,4 @@ instance/
 temp/
 client_secrets.json
 credentials.json
+init_db.py

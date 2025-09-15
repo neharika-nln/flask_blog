@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 import random
 from datetime import datetime, timedelta
-from models import User
+from models import User, Like, Comment
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt
 from extensions import db, bcrypt, jwt_blocklist
@@ -26,7 +26,7 @@ def register():
 
     if data["password"] == "":
         return jsonify({"error": "Password cannot be empty"}), 400
-        
+
     hashed_password = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
 
     # Create new user
@@ -52,11 +52,31 @@ def login():
 
     if not bcrypt.check_password_hash(user.password, data["password"]):
         return jsonify({"message":"Wrong password!"}),401
+    
+    # count posts
+    posts_count = len(user.posts)
+
+    # collect all post IDs of this user
+    post_ids = [post.id for post in user.posts]
+
+    # count likes on those posts
+    likes_count = Like.query.filter(Like.post_id.in_(post_ids)).count() if post_ids else 0
+
+    # count comments on those posts
+    comments_count = Comment.query.filter(Comment.post_id.in_(post_ids)).count() if post_ids else 0
 
 
     if user and bcrypt.check_password_hash(user.password, data["password"]):
         token = create_access_token(identity=str(user.id))     # this creates the token
-        return jsonify({"token": token,"name":user.name,"user_id":user.id,"message":"Login successful"}), 200
+        return jsonify({
+        "token": token,
+        "name":user.name,
+        "username": user.username,
+        "email": user.email,
+        "posts_count": posts_count,
+        "total_likes": likes_count,
+        "total_comments": comments_count
+    }), 200
     # return jsonify({"error": "Wrong password!"}), 401
 
 @auth_bp.route("/logout", methods=["POST"])
