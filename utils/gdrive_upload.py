@@ -1,10 +1,13 @@
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
+import os
+from dotenv import load_dotenv
+load_dotenv()  # this loads variables from .env into os.environ
 
 FOLDER_ID = "138q20HHJFDxrQ87t5fVf-nOBYqc5jJxf"
 gauth = GoogleAuth()
-gauth.LocalWebserverAuth()  # Opens browser once for login
-gauth.SaveCredentialsFile("credentials.json")
+cred_path = os.getenv("GOOGLE_DRIVE_CREDENTIALS", "/etc/secrets/credentials.json")
+gauth.LoadCredentialsFile(cred_path)
 
 if gauth.credentials is None:
     # first-time only, locally run this to generate credentials.json
