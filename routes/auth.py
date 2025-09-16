@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Blueprint, request, jsonify
 import random
 from datetime import datetime, timedelta
 from models import User, Like, Comment
@@ -8,10 +8,9 @@ from extensions import db, bcrypt, jwt_blocklist
 from utils.send_email import send_otp_email
 
 bcrypt = Bcrypt()
-app = Flask(__name__)
-# auth_bp = Blueprint("auth", __name__)
+auth_bp = Blueprint("auth", __name__)
 
-@app.route("/auth/register", methods=["POST"])
+@auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
 
@@ -43,7 +42,7 @@ def register():
 
     return jsonify({"message": "User registered successfully"}), 201
 
-@app.route("/auth/login", methods=["POST"])
+@auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
     user = User.query.filter_by(username=data["username"]).first()
@@ -80,7 +79,7 @@ def login():
     }), 200
     # return jsonify({"error": "Wrong password!"}), 401
 
-@app.route("/auth/logout", methods=["POST"])
+@auth_bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
     jti = get_jwt()["jti"]  # token’s unique ID
@@ -91,7 +90,7 @@ def logout():
 otp_store = {}
 
 # Step 1: Request OTP
-@app.route("/auth/forgot-password", methods=["POST"])
+@auth_bp.route("/forgot-password", methods=["POST"])
 def forgot_password():
     data = request.get_json()
     email = data.get("email")
@@ -112,7 +111,7 @@ def forgot_password():
     return jsonify({"message": "OTP sent to your email"}), 200
 
 # Step 2: Verify OTP
-@app.route("/auth/verify-otp", methods=["POST"])
+@auth_bp.route("/verify-otp", methods=["POST"])
 def verify_otp():
     data = request.get_json()
     email = data.get("email")
@@ -131,7 +130,7 @@ def verify_otp():
     return jsonify({"message": "OTP verified successfully"}), 200
 
 # Step 3: Reset Password
-@app.route("/auth/reset-password", methods=["POST"])
+@auth_bp.route("/reset-password", methods=["POST"])
 def reset_password():
     data = request.get_json()
     email = data.get("email")
