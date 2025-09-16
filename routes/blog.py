@@ -1,17 +1,18 @@
-from flask import Blueprint, request, jsonify
+from flask import Flask, request, jsonify
 from extensions import db
 from models import Post, Comment, Like
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime
+# from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 from utils.gdrive_upload import FOLDER_ID, upload_to_drive  
 
-blog_bp = Blueprint('blog_bp', __name__)
 
+# blog_bp = Blueprint('blog_bp', __name__)
+app = Flask(__name__)
 
 # Create a new post
-@blog_bp.route("/create", methods=["POST"])
+@app.route("/blog/create", methods=["POST"])
 @jwt_required()
 def create_post():
     # Get form data
@@ -52,7 +53,7 @@ def create_post():
     return jsonify({"message": "Post created successfully", "post_id": new_post.id, "image":image_url}), 200
 
 # Get all posts with likes/comments count
-@blog_bp.route("/all", methods=["GET"])
+@app.route("/blog/all", methods=["GET"])
 def get_posts():
     posts = Post.query.order_by(Post.created_at.desc()).all()
     output = []
@@ -88,7 +89,7 @@ def get_posts():
     return jsonify(output), 200
 
 # Add comment to a post
-@blog_bp.route("/comment/<int:post_id>", methods=["POST"])
+@app.route("/blog/comment/<int:post_id>", methods=["POST"])
 @jwt_required()
 def add_comment(post_id):
     data = request.get_json()
@@ -109,7 +110,7 @@ def add_comment(post_id):
     return jsonify({"message": "Comment added"}), 200
 
 # Like a post
-@blog_bp.route("/like/<int:post_id>", methods=["POST"])
+@app.route("/blog/like/<int:post_id>", methods=["POST"])
 @jwt_required()
 def like_post(post_id):
     user_id = get_jwt_identity()
@@ -129,7 +130,7 @@ def like_post(post_id):
         return jsonify({"message":"Post Liked"}),201
 
 # DELETE a post
-@blog_bp.route("/delete/<int:post_id>", methods=["DELETE"])
+@app.route("/blog/delete/<int:post_id>", methods=["DELETE"])
 @jwt_required()
 def delete_post(post_id):
     current_user_id = get_jwt_identity()
@@ -155,7 +156,7 @@ def delete_post(post_id):
     return jsonify({"message": "Post deleted successfully"}), 200
 
 # UPDATE a post
-@blog_bp.route("/update/<int:post_id>", methods=["PUT"])
+@app.route("/blog/update/<int:post_id>", methods=["PUT"])
 @jwt_required()
 def update_post(post_id):
     current_user_id = get_jwt_identity()
@@ -187,24 +188,3 @@ def update_post(post_id):
         }
     }), 200
 
-# from flask import Blueprint, request, jsonify
-# from app import db
-# from models import Post
-# from flask_jwt_extended import jwt_required, get_jwt_identity
-
-# blog_bp = Blueprint("blog", __name__)
-
-# @blog_bp.route("/", methods=["GET"])
-# def get_posts():
-#     posts = Post.query.all()
-#     return jsonify([{"id": p.id, "title": p.title, "content": p.content} for p in posts])
-
-# @blog_bp.route("/", methods=["POST"])
-# @jwt_required()
-# def create_post():
-#     data = request.get_json()
-#     user_id = get_jwt_identity()
-#     new_post = Post(title=data["title"], content=data["content"], user_id=user_id)
-#     db.session.add(new_post)
-#     db.session.commit()
-#     return jsonify({"message": "Post created successfully"}), 201
